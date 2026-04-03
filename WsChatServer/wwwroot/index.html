@@ -17,7 +17,10 @@
     .msg .from { font-weight: bold; color: #0078d4; }
     .msg.system { color: #888; font-style: italic; }
     .msg .time { font-size: 0.75em; color: #999; margin-left: 6px; }
-    #roomInfo { background: #e8f4fd; padding: 8px; border-radius: 4px; margin-bottom: 12px; }
+    #roomInfo { background: #e8f4fd; padding: 8px; border-radius: 4px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    #copyBtn { background: #fff; color: #0078d4; border-color: #0078d4; padding: 4px 10px; font-size: 0.85em; }
+    #copyBtn:hover { background: #e8f4fd; }
+    #copyBtn.copied { background: #d4edda; color: #155724; border-color: #155724; }
     #sendRow { display: flex; gap: 6px; }
     #msgInput { flex: 1; }
   </style>
@@ -110,7 +113,8 @@
     document.getElementById('setup').style.display = 'none';
     document.getElementById('chat').style.display = 'block';
     document.getElementById('roomInfo').innerHTML =
-      `房間 ID：<b>${roomId}</b>　${isCreator ? '（已創建）' : '（已加入）'}　<small>— 將此 ID 分享給其他人</small>`;
+      `<span>房間 ID：<b>${roomId}</b>　${isCreator ? '（已創建）' : '（已加入）'}　<small>— 將此 ID 分享給其他人</small></span>` +
+      `<button id="copyBtn" onclick="copyRoomId('${roomId}')">複製 ID</button>`;
     appendSystem(isCreator ? `房間 ${roomId} 已創建，等待其他人加入…` : `成功加入房間 ${roomId}`);
   }
 
@@ -131,6 +135,18 @@
     div.textContent = text;
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function copyRoomId(roomId) {
+    navigator.clipboard.writeText(roomId).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = '已複製！';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = '複製 ID';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
   }
 
   function esc(s) {

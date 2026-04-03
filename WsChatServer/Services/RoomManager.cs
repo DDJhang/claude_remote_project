@@ -46,6 +46,18 @@ public class RoomManager
             _rooms.TryRemove(roomId, out _);
     }
 
+    /// <summary>移除所有空房間，回傳被刪除的房間 ID 列表。</summary>
+    public IReadOnlyList<string> CleanupEmptyRooms()
+    {
+        var removed = new List<string>();
+        foreach (var (id, room) in _rooms)
+        {
+            if (room.IsEmpty && _rooms.TryRemove(id, out _))
+                removed.Add(id);
+        }
+        return removed;
+    }
+
     private string GenerateId()
     {
         return new string(Enumerable.Range(0, IdLength)

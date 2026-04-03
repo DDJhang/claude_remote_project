@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<RoomManager>();
 builder.Services.AddSingleton<WebSocketHandler>();
+builder.Services.AddHostedService<RoomCleanupService>();
 
 var app = builder.Build();
 
