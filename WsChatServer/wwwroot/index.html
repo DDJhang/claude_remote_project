@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>WS 聊天室</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: sans-serif; margin: 0; padding: 16px; background: #f5f5f5; }
+    h2 { margin-top: 0; }
+    #setup, #chat { background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 12px; }
+    #chat { display: none; }
+    input, button { padding: 8px 12px; margin: 4px 2px; border-radius: 4px; border: 1px solid #ccc; }
+    button { background: #0078d4; color: #fff; border-color: #0078d4; cursor: pointer; }
+    button:hover { background: #005fa3; }
+    #messages { height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 8px; background: #fafafa; margin-bottom: 8px; }
+    .msg { margin: 4px 0; }
+    .msg .from { font-weight: bold; color: #0078d4; }
+    .msg.system { color: #888; font-style: italic; }
+    .msg .time { font-size: 0.75em; color: #999; margin-left: 6px; }
+    #roomInfo { background: #e8f4fd; padding: 8px; border-radius: 4px; margin-bottom: 12px; }
+    #sendRow { display: flex; gap: 6px; }
+    #msgInput { flex: 1; }
+  </style>
+</head>
+<body>
+
+<h2>WebSocket 聊天室</h2>
+
+<div id="setup">
+  <div>
+    <b>暱稱：</b><input id="nickname" placeholder="輸入暱稱" />
+  </div>
+  <div style="margin-top:10px;">
+    <button onclick="createRoom()">創建房間</button>
+    &nbsp;或加入房間：<input id="roomIdInput" placeholder="4 字元 ID" maxlength="4" style="width:80px"/>
+    <button onclick="joinRoom()">加入</button>
+  </div>
+  <div id="status" style="margin-top:8px;color:#c00;"></div>
+</div>
+
+<div id="chat">
+  <div id="roomInfo"></div>
+  <div id="messages"></div>
+  <div id="sendRow">
+    <input id="msgInput" placeholder="輸入訊息…" onkeydown="if(event.key==='Enter') sendMsg()" />
+    <button onclick="sendMsg()">送出</button>
+  </div>
+</div>
+
+<script>
+  let ws;
+
+  function connect(onOpen) {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+    ws.onopen = () => onOpen();
+
+    ws.onmessage = e => {
+      const msg = JSON.parse(e.data);
+      switch (msg.type) {
+        case 'created':
+          enterChat(msg.roomId, true);
+          break;
+        case 'joined':
+          enterChat(msg.roomId, false);
+          break;
+        case 'message':
+          appendMsg(msg.from, msg.content, msg.timestamp);
+          break;
+        case 'userJoined':
+          appendSystem(`${msg.nickname} 加入了房間`);
+          break;
+        case 'userLeft':
+          appendSystem(`${msg.nickname} 離開了房間`);
+          break;
+        case 'error':
+          document.getElementById('status').textContent = '錯誤：' + msg.message;
+          break;
+      }
+    };
+
+    ws.onclose = () => appendSystem('已與伺服器斷線。');
+    ws.onerror = () => appendSystem('連線錯誤。');
+  }
+
+  function createRoom() {
+    const nick = document.getElementById('nickname').value.trim();
+    if (!nick) { alert('請輸入暱稱'); return; }
+    connect(() => ws.send(JSON.stringify({ action: 'create', nickname: nick })));
+  }
+
+  function joinRoom() {
+    const nick = document.getElementById('nickname').value.trim();
+    const roomId = document.getElementById('roomIdInput').value.trim();
+    if (!nick) { alert('請輸入暱稱'); return; }
+    if (roomId.length !== 4) { alert('房間 ID 需為 4 個字元'); return; }
+    connect(() => ws.send(JSON.stringify({ action: 'join', roomId, nickname: nick })));
+  }
+
+  function sendMsg() {
+    const input = document.getElementById('msgInput');
+    const content = input.value.trim();
+    if (!content || !ws) return;
+    ws.send(JSON.stringify({ action: 'message', content }));
+    input.value = '';
+  }
+
+  function enterChat(roomId, isCreator) {
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('chat').style.display = 'block';
+    document.getElementById('roomInfo').innerHTML =
+      `房間 ID：<b>${roomId}</b>　${isCreator ? '（已創建）' : '（已加入）'}　<small>— 將此 ID 分享給其他人</small>`;
+    appendSystem(isCreator ? `房間 ${roomId} 已創建，等待其他人加入…` : `成功加入房間 ${roomId}`);
+  }
+
+  function appendMsg(from, content, timestamp) {
+    const msgs = document.getElementById('messages');
+    const t = timestamp ? new Date(timestamp).toLocaleTimeString() : '';
+    const div = document.createElement('div');
+    div.className = 'msg';
+    div.innerHTML = `<span class="from">${esc(from)}</span><span class="time">${t}</span>：${esc(content)}`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function appendSystem(text) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg system';
+    div.textContent = text;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
