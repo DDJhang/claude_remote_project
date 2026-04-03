@@ -21,6 +21,8 @@
     #copyBtn { background: #fff; color: #0078d4; border-color: #0078d4; padding: 4px 10px; font-size: 0.85em; }
     #copyBtn:hover { background: #e8f4fd; }
     #copyBtn.copied { background: #d4edda; color: #155724; border-color: #155724; }
+    #leaveBtn { background: #fff; color: #c00; border-color: #c00; padding: 4px 10px; font-size: 0.85em; margin-left: auto; }
+    #leaveBtn:hover { background: #fff0f0; }
     #sendRow { display: flex; gap: 6px; }
     #msgInput { flex: 1; }
   </style>
@@ -52,6 +54,7 @@
 
 <script>
   let ws;
+  let _leaving = false;
 
   function connect(onOpen) {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -83,7 +86,9 @@
       }
     };
 
-    ws.onclose = () => appendSystem('已與伺服器斷線。');
+    ws.onclose = () => {
+      if (!_leaving) appendSystem('已與伺服器斷線。');
+    };
     ws.onerror = () => appendSystem('連線錯誤。');
   }
 
@@ -114,7 +119,8 @@
     document.getElementById('chat').style.display = 'block';
     document.getElementById('roomInfo').innerHTML =
       `<span>房間 ID：<b>${roomId}</b>　${isCreator ? '（已創建）' : '（已加入）'}　<small>— 將此 ID 分享給其他人</small></span>` +
-      `<button id="copyBtn" onclick="copyRoomId('${roomId}')">複製 ID</button>`;
+      `<button id="copyBtn" onclick="copyRoomId('${roomId}')">複製 ID</button>` +
+      `<button id="leaveBtn" onclick="leaveRoom()">離開聊天室</button>`;
     appendSystem(isCreator ? `房間 ${roomId} 已創建，等待其他人加入…` : `成功加入房間 ${roomId}`);
   }
 
@@ -135,6 +141,19 @@
     div.textContent = text;
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function leaveRoom() {
+    _leaving = true;
+    if (ws) ws.close();
+    ws = null;
+    _leaving = false;
+
+    document.getElementById('chat').style.display = 'none';
+    document.getElementById('setup').style.display = 'block';
+    document.getElementById('messages').innerHTML = '';
+    document.getElementById('roomIdInput').value = '';
+    document.getElementById('status').textContent = '';
   }
 
   function copyRoomId(roomId) {
