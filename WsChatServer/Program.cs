@@ -51,4 +51,14 @@ app.MapPost("/api/rooms/clients", (RoomRequest req, RoomManager rm) =>
         : Results.Ok(new { roomId = req.RoomId, nicknames });
 });
 
+// 4. 系統廣播：通知所有聊天室內的客戶
+app.MapPost("/api/broadcast", async (SystemBroadcastRequest req, WebSocketHandler handler) =>
+{
+    if (string.IsNullOrWhiteSpace(req.Content))
+        return Results.BadRequest(new { message = "Content cannot be empty." });
+
+    await handler.BroadcastSystemMessageAsync(req.Content);
+    return Results.Ok(new { message = "Broadcast sent." });
+});
+
 app.Run();

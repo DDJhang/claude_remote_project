@@ -37,6 +37,9 @@ public class RoomManager
             ? room.GetClients().Select(c => c.Nickname ?? "(未命名)")
             : null;
 
+    public IEnumerable<ChatClient> GetAllClients() =>
+        _rooms.Values.SelectMany(r => r.GetClients());
+
     public void RemoveRoomIfEmpty(string roomId)
     {
         if (_rooms.TryGetValue(roomId, out var room) && room.IsEmpty)

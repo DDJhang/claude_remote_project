@@ -184,6 +184,7 @@ public class WebSocketHandler
 
         var chatMsg = new ChatMessage
         {
+            MessageType = "normal",
             From = client.Nickname ?? "Unknown",
             Content = msg.Content,
             Timestamp = DateTimeOffset.UtcNow.ToString("o")
@@ -245,5 +246,25 @@ public class WebSocketHandler
             .Select(c => SendAsync(c, message));
 
         await Task.WhenAll(tasks);
+    }
+
+    // ── 系統廣播（供 HTTP 端點呼叫）────────────────────────────────────────────
+
+    public async Task BroadcastSystemMessageAsync(string content)
+    {
+        var msg = new ChatMessage
+        {
+            MessageType = "system",
+            From = "System",
+            Content = content,
+            Timestamp = DateTimeOffset.UtcNow.ToString("o")
+        };
+
+        var tasks = _roomManager.GetAllClients()
+            .Where(c => c.IsConnected)
+            .Select(c => SendAsync(c, msg));
+
+        await Task.WhenAll(tasks);
+        _logger.LogInformation("System broadcast sent: {Content}", content);
     }
 }

@@ -7,6 +7,11 @@ public class RoomRequest
     public string RoomId { get; set; } = string.Empty;
 }
 
+public class SystemBroadcastRequest
+{
+    public string Content { get; set; } = string.Empty;
+}
+
 // ── Client → Server ──────────────────────────────────────────────────────────
 
 public class ClientMessage
@@ -39,6 +44,7 @@ public class RoomJoinedMessage : ServerMessage
 
 public class ChatMessage : ServerMessage
 {
+    public string MessageType { get; set; } = string.Empty; // "normal" | "system"
     public string From { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public string Timestamp { get; set; } = string.Empty;
