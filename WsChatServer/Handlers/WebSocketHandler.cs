@@ -50,13 +50,25 @@ public class WebSocketHandler
             WebSocketReceiveResult result;
             using var ms = new System.IO.MemoryStream();
 
-            do
+            try
             {
-                result = await client.Socket.ReceiveAsync(buffer, ct);
-                if (result.MessageType == WebSocketMessageType.Close)
-                    return;
-                ms.Write(buffer, 0, result.Count);
-            } while (!result.EndOfMessage);
+                do
+                {
+                    result = await client.Socket.ReceiveAsync(buffer, ct);
+                    if (result.MessageType == WebSocketMessageType.Close)
+                        return;
+                    ms.Write(buffer, 0, result.Count);
+                } while (!result.EndOfMessage);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (WebSocketException ex)
+            {
+                _logger.LogWarning("Client {Id} disconnected unexpectedly: {Msg}", client.Id, ex.Message);
+                return;
+            }
 
             var json = Encoding.UTF8.GetString(ms.ToArray());
             await ProcessMessageAsync(client, json);
